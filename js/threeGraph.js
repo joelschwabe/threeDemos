@@ -103,13 +103,6 @@ function init(){
 	graphGroup.name = 'graph';
 	
 	/*
-	//sphere centerpoint
-	var geometry = new THREE.SphereGeometry( 1, 32, 32 );
-	var material = new THREE.MeshBasicMaterial( {color: 0xffff00} );
-	var sphere = new THREE.Mesh( geometry, material );
-	sphere.name = "origin";
-	scene.add( sphere ); //don't add centerpoint to group
-
 	//group pivotPoint
 	var material2 = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
 	var sphere2 = new THREE.Mesh( geometry, material2 );
@@ -134,10 +127,18 @@ function init(){
 	var planeXY = makePlane(planeW,planeH,0xc9a740,"XY"); //y axis graph
 	var planeXZ = makePlane(planeW,15,0xc9a740,"XZ"); //bottom holder of graph
 	planeXZ.rotateX(Math.PI / 2); //flip to make a platform
-	_translate(planeXZ,planeXZ.geometry.parameters.width/2,planeXZ.geometry.parameters.height/2,-1);
+	_translate(planeXZ,planeXZ.geometry.parameters.width/2,planeXZ.geometry.parameters.height/2,1);
 	_translate(planeXY,planeXY.geometry.parameters.width/2,planeXY.geometry.parameters.height/2,-1);
 	
-	controls.target= planeXY.position;
+	//clear centerpoint for camera pivot
+	var geometry = new THREE.SphereGeometry( 1, 3, 2 );
+	var material = new THREE.ShadowMaterial();
+	var sphere = new THREE.Mesh( geometry, material );
+	sphere.name = "origin";
+	scene.add( sphere ); //don't add centerpoint to group
+	_translate(sphere,planeXZ.geometry.parameters.width/2,planeH/2,1);
+	
+	controls.target= sphere.position;
 	controls.update();
 	
 	var planeYAB = makePlane(35,planeH,0xa28c4a,"YAB"); //-y axis back drop
@@ -504,6 +505,7 @@ function getPriceData(){
 		}
 	);
 }
+
 function restCall(url) { return new Promise(function(resolve, reject) {
 	var xhttp = new XMLHttpRequest();
 	xhttp.open("GET", url);
@@ -526,47 +528,3 @@ function restCall(url) { return new Promise(function(resolve, reject) {
 }).catch(function(err){
 		console.log("Could not get contact server" + err);
 })}
-
-/*
-document.onkeydown = function(e) {
-    switch (e.keyCode) {
-        case 65:
-            planeXY.rotateX(Math.PI / 180);
-            break;
-		case 83:
-			planeXY.rotateY(Math.PI / 180);
-			break;			
-		case 68:
-            planeXY.rotateZ(Math.PI / 180);
-            break;
-	    case 90:
-            planeXZ.rotateX(Math.PI / 180);
-            break;
-		case 88:
-			planeXZ.rotateY(Math.PI / 180);
-			break;			
-		case 67:
-            planeXZ.rotateZ(Math.PI / 180);
-            break;
-	    case 70:
-            planeXY.translateX(2);
-            break;
-		case 71:
-			planeXY.translateY(2);
-			break;			
-		case 72:
-            planeXY.translateZ(2);
-            break;
-	    case 86:
-            planeXZ.translateX(2);
-            break;
-		case 66:
-			planeXZ.translateY(2);
-			break;			
-		case 78:
-            planeXZ.translateZ(2);
-            break;
-	
-    }
-};
-*/
