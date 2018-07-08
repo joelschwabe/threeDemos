@@ -1,13 +1,12 @@
-var renderer, scene, camera, controls, info, graphGroup;
+var renderer, scene, camera, controls, info, graphGroup, coin, light;
 
-var planeXY;
-var planeXZ;
 var objCounter = 0;
 
 var barCounter = 0;
-var barSpacer = 20, barX = 10, barZ = 10;
+var barSpacer = 20, barX = 10, barZ = 10, barCountMax=15;
 var barOriginX = 0 + barX/2, barOriginY = 0, barOriginZ = 0 + barZ/2;
-var planeW = 320, planeH = 180, headroom = 10;
+var planeW = (barX +barSpacer/2) * (barCountMax + 1); 
+var planeH = 200, headroom = 10;
 
 var loader = new THREE.FontLoader();
 
@@ -58,20 +57,22 @@ var graphTypes = {
 var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 init();
-animate();
 getPriceData();
+animate();
 
 function init(){
 	// html overlay
-	info = document.createElement( 'span' );
+	info = document.createElement( 'div' );
 	info.style.position = 'absolute';
 	info.style.top = '0px';
-	info.style.width = '355px';
-	info.style.height = '70px';
+	info.style.paddingLeft = '5px';
+	info.style.width = '370px';
+	info.style.height = '100px';
 	info.style.textAlign = 'left';
 	info.style.color = '#000';
 	info.style.fontWeight = 'bold';
-	info.style.backgroundColor = 'transparent';
+	info.style.fontSize = '16';
+	info.style.backgroundColor = '#a28c4a';
 	info.style.zIndex = '1';
 
 	buildMenu(info);
@@ -90,8 +91,8 @@ function init(){
 	
 	// camera
 	camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 1, 10000 );
-	camera.position.set( 145, 205, 280 );
-	//camera.lookAt(planeW/2,planeH/2,0);
+	camera.position.set( planeW/2, planeH/2, barCountMax * 25 );
+	camera.lookAt(planeW/2,planeH/2,0);
 
 	//controls
 	controls = new THREE.OrbitControls( camera, renderer.domElement ); //need that second param otherwise the controls are based off the window instead of the canvas
@@ -99,6 +100,7 @@ function init(){
 	
 	//grouping
 	graphGroup = new THREE.Group();
+	graphGroup.name = 'graph';
 	
 	/*
 	//sphere centerpoint
@@ -108,7 +110,7 @@ function init(){
 	sphere.name = "origin";
 	scene.add( sphere ); //don't add centerpoint to group
 
-	//sphere pivotPoint
+	//group pivotPoint
 	var material2 = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
 	var sphere2 = new THREE.Mesh( geometry, material2 );
 	sphere2.name = "pivotPoint";
@@ -121,37 +123,60 @@ function init(){
 	*/
 
 	//add lighting
-    var light = new THREE.PointLight(0x2f3c7f);
-    light.position.set(-100,200,100);
+    //light = new THREE.AmbientLight( 0x404040 ); // soft white light
+	//light = new THREE.HemisphereLight( 0xffffbb, 0x080820, 1 );
+    //light.position.set(-100,200,100);
+	var light = new THREE.PointLight( 0xffffff, 1, 0 );
+	light.position.set( 150, 50, 50 );
     scene.add(light);
-	
-	//plane geometry (graph)
-	var geometryXY = new THREE.PlaneGeometry( planeW, planeH );
-	var materialXY = new THREE.MeshBasicMaterial( {color: 0x519cad, side: THREE.DoubleSide} );
-	planeXY = new THREE.Mesh( geometryXY, materialXY );
-	planeXY.name = "planeXY";
 
+
+	var planeXY = makePlane(planeW,planeH,0xc9a740,"XY"); //y axis graph
+	var planeXZ = makePlane(planeW,15,0xc9a740,"XZ"); //bottom holder of graph
+	planeXZ.rotateX(Math.PI / 2); //flip to make a platform
+	_translate(planeXZ,planeXZ.geometry.parameters.width/2,planeXZ.geometry.parameters.height/2,-1);
+	_translate(planeXY,planeXY.geometry.parameters.width/2,planeXY.geometry.parameters.height/2,-1);
 	
-	var geometryXZ = new THREE.PlaneGeometry( planeW, 20 );
-	var materialXZ = new THREE.MeshBasicMaterial( {color: 0xa0ccd6, side: THREE.DoubleSide} );
-	planeXZ = new THREE.Mesh( geometryXZ, materialXZ );
-	planeXZ.name = "planeXZ";
-	planeXZ.rotateX(Math.PI / 2);
-	_translate(planeXZ,planeXZ.geometry.parameters.width/2,planeXZ.geometry.parameters.height/2,0);
-	_translate(planeXY,planeXY.geometry.parameters.width/2,planeXY.geometry.parameters.height/2,0);
+	controls.target= planeXY.position;
+	controls.update();
 	
+	var planeYAB = makePlane(35,planeH,0xa28c4a,"YAB"); //-y axis back drop
+	var planeXAB = makePlane(planeW,30,0xa28c4a,"XAB"); //x axis back drop
+	_translate(planeYAB,(-planeYAB.geometry.parameters.width/2),planeYAB.geometry.parameters.height/2,-1);
+	_translate(planeXAB,planeXAB.geometry.parameters.width/2,-planeXAB.geometry.parameters.height/2,-1);
+	
+	scene.add( planeYAB );
+	scene.add( planeXAB );	
 	scene.add( planeXY );
 	scene.add( planeXZ );
 	scene.add(graphGroup);
+	
+	window.addEventListener( 'resize', onWindowResize, false );
 }
 
 function animate() {
-
 	requestAnimationFrame( animate );
-	
 	renderer.render( scene, camera );
-	controls.update();	
+	controls.update();
+	if(coin){
+		coin.rotation.z += 0.02;	
+	}
 }
+
+function onWindowResize() {
+	camera.aspect = window.innerWidth / window.innerHeight;
+	camera.updateProjectionMatrix();
+	renderer.setSize( window.innerWidth, window.innerHeight );
+}
+
+function makePlane(x,y,color,id){
+	var geo = new THREE.PlaneGeometry( x, y );
+	var mat = new THREE.MeshBasicMaterial( {color: color, side: THREE.DoubleSide} );
+	plane = new THREE.Mesh( geo, mat );
+	plane.name = "plane" + id;
+	return plane;
+}
+
 function makeLine(x1,y1,z1,x2,y2,z2, color, name){
 	var geometryLine = new THREE.Geometry();
 	geometryLine.vertices.push(new THREE.Vector3( x1, y1, z1) );
@@ -171,10 +196,65 @@ function makeLine(x1,y1,z1,x2,y2,z2, color, name){
 	scene.add( line );
 	objCounter++;
 }
+//
+function makeCoin(rad,thick,xt,yt,zt,size,coinType){
+	var coin_sides_geo =  new THREE.CylinderGeometry( rad, rad, thick, 30, 30, true );
+	var coin_cap_geo = new THREE.Geometry();
+	var r = rad; 
+	for (var i=0; i<100; i++) {
+	  var a = i * 1/100 * Math.PI * 2;
+	  var z = Math.sin(a);
+	  var x = Math.cos(a);
+	  var a1 = (i+1) * 1/100 * Math.PI * 2;
+	  var z1 = Math.sin(a1);
+	  var x1 = Math.cos(a1);
+	  coin_cap_geo.vertices.push(
+		new THREE.Vector3(0, 0, 0),
+		new THREE.Vector3(x*r, 0, z*r),
+		new THREE.Vector3(x1*r, 0, z1*r)
+	  );
+	  coin_cap_geo.faceVertexUvs[0].push([
+		new THREE.Vector2(0.5, 0.5),
+		new THREE.Vector2(x/2+0.5, z/2+0.5),
+		new THREE.Vector2(x1/2+0.5, z1/2+0.5)
+	  ]);
+	  coin_cap_geo.faces.push(new THREE.Face3(i*3, i*3+1, i*3+2));
+	}
+	coin_cap_geo.computeVertexNormals();
+	coin_cap_geo.computeFaceNormals();
 
-function addBar(x,y,z,w,l,h,name){
+	var coin_sides_texture =  new THREE.TextureLoader().load('img/side.png', function ( coin_sides_texture ) {
+		coin_sides_texture.wrapS = coin_sides_texture.wrapT = THREE.RepeatWrapping;
+		coin_sides_texture.offset.set( 0, 0 );
+		coin_sides_texture.repeat.set( 2, 2 );
+	} );
+	
+	var coin_cap_texture =  new THREE.TextureLoader().load('img/'+ coinType +'.png');
+
+	var coin_sides_mat =  new THREE.MeshBasicMaterial({map:coin_sides_texture});
+	var coin_sides =  new THREE.Mesh( coin_sides_geo, coin_sides_mat );
+
+	var coin_cap_mat = new THREE.MeshBasicMaterial({map:coin_cap_texture});
+	var coin_cap_top = new THREE.Mesh( coin_cap_geo, coin_cap_mat );
+	var coin_cap_bottom = new THREE.Mesh( coin_cap_geo, coin_cap_mat );
+
+	coin_cap_top.position.y = 0.5;
+	coin_cap_bottom.position.y = -0.5;
+	coin_cap_bottom.rotation.y = Math.PI;
+	coin_cap_top.rotation.x = Math.PI;
+
+	coin = new THREE.Object3D();
+	coin.add(coin_sides);
+	coin.add(coin_cap_top);
+	coin.add(coin_cap_bottom);
+	_translate(coin,xt,yt,zt);
+	coin.rotateX(Math.PI / 2); 
+	scene.add(coin);
+}
+
+function addBar(x,y,z,w,l,h,name,color){
 	geometry = new THREE.BoxGeometry(w, l, h );
-	material = new THREE.MeshNormalMaterial();
+	material = new THREE.MeshPhongMaterial(/*{color: color}*/);
 	bar = new THREE.Mesh( geometry, material );
 	_translate(bar,x,y,z);
 
@@ -192,12 +272,12 @@ function addBar(x,y,z,w,l,h,name){
 	objCounter++;
 }
 
-function renderedText(text,x,y,z,colorFill){
+function renderedText(text,x,y,z,colorFill,size){
 	loader.load( 'fonts/helvetiker_regular.typeface.json', function ( font  ) {
 		var geometry = new THREE.TextGeometry( text.toString(), {
 			font: font,
-			size: 3,
-			height: 2,
+			size: size,
+			height: 0.5,
 			curveSegments: 8
 
 		} );
@@ -217,31 +297,20 @@ function _translate(object,x,y,z){
 	object.translateY(y);
 	object.translateZ(z);
 }
-/*
-function addDataAlongXaxis(barY, name, scaleMod){
-	var thisX,thisY,thisZ;
-	thisX = barOriginX + (barCounter * barSpacer);
-	thisY = barOriginY + ((barY/2) * scaleMod);
-	thisZ = barOriginZ;
-	addBar(	thisX,thisY,thisZ,barX,(barY * scaleMod),barZ,name);
-	renderedText(name,(thisX-barX/2),1,10,0xdf13f0); //date
-	renderedText(barY,(thisX-barX/2),(barY* scaleMod + 5),1,0xff0000); //value 
-	barCounter++;
-}
-*/
+
 function addDataAlongXaxis(barY, price, date){
 	var thisX,thisY,thisZ;
 	thisX = barOriginX + (barCounter * barSpacer);
 	thisY = barOriginY + (barY/2);
 	thisZ = barOriginZ;
-	addBar(	thisX,thisY,thisZ,barX,barY,barZ);
-	renderedText(date,(thisX-barX/2),1,10,0xdf13f0); //date
-	renderedText(price,(thisX-barX/2),(barY + 5),1,0xff0000); //value 
+	addBar(	thisX,thisY,thisZ,barX,barY,barZ + 1, 'bar'+thisX ,'white');
+	renderedText(date,(thisX-barX/2),1,11,0x000000,3); //date
+	renderedText(price,(thisX-barX/2),(barY + 5),1,0x000000,3); //value 
 	barCounter++;
 }
 
 function createYaxisLegend(scaleType, high, low, markers){
-	var x = -20, z = 0;
+	var x = -25, z = -1;
 	var markInd = (planeH - headroom) / markers; //y value of indicator
 	var priceInc = 0;
 	var priceScale = 0;
@@ -256,9 +325,9 @@ function createYaxisLegend(scaleType, high, low, markers){
 	for(i=0; i < markers + 1; i++){ //start at 0 origin, so add 1
 		var adjustedPrice;
 		if(priceInc > 0.1){
-			adjustedPrice = priceScale.toFixed(5);
+			adjustedPrice = priceScale.toFixed(2);
 		}else{
-			adjustedPrice = priceScale.toPrecision(6);
+			adjustedPrice = priceScale.toPrecision(4);
 		}
 		var cur = document.getElementById("fiatSelect").value;
 		switch(cur){
@@ -284,50 +353,18 @@ function createYaxisLegend(scaleType, high, low, markers){
 				adjustedPrice = "¥" + adjustedPrice;	
 				break;				
 		}
-		renderedText(adjustedPrice,0-(barX*3),markScale,0,0xff1300);
-		makeLine(0,markScale,2,planeW,markScale,2,0xff1300);
-		
-		priceScale += priceInc;
-		markScale += markInd;
-	}
-}
-/*
-
-function createYaxisLegend(scaleType, high, low, markers){
-	var x = -20, z = 0;
-	var markInd = (planeH - headroom) / markers; //y value of indicator
-	var priceInc = 0;
-	var priceScale = 0;
-	var markScale = 0;
-	if(scaleType=='trim'){
-		priceInc = (high - low) / markers; //num value of each marker segment
-		priceScale = low - priceInc;
-	}else{
-		priceInc = high / markers; //num value of each marker segment
-		priceScale = priceInc;
-	}
-
-	for(i=0; i < markers; i++){
-		
-		var adjustedPrice;
-		if(priceInc > 0.1){
-			adjustedPrice = priceScale.toFixed(2);
-		}else{
-			adjustedPrice = priceScale.toPrecision(4);
-		}
-		
-		renderedText(priceScale.toPrecision(7),0-(barX*3),markScale,0,0xff1300);
-		makeLine(0,markScale,2,planeW,markScale,2,0xff1300);
+		renderedText(adjustedPrice,0-(barX*3),markScale,0,0x000000,3);
+		makeLine(0,markScale,2,planeW,markScale,1,0xff1300);
 		
 		priceScale += priceInc;
 		markScale += markInd;
 	}
 }
 
-*/
-function createXaxisLegend(scaleType, data){
-	var y = -20, z = 20;
-	
+function createXaxisLegend(crypto,fiat,timing ){
+	var x = 10, y = -18, z = 10;
+	var text = "Price of " + crypto + " in " + fiat + " over last " + barCountMax + " " + timing + "s"
+	renderedText(text,x,y,z,0x000000,10);
 }
 
 function buildMenu(div){
@@ -346,11 +383,17 @@ function buildMenu(div){
 	//create time choices
 	var displayChoice = createSelect("displaySelect","selectOption",graphTypes);	
 	
+	var timespan = document.createElement("input");
+	timespan.id= "timespan",
+	timespan.placeholder = "Unit of time....";
+	timespan.addEventListener('focusout', checkTimespan);
+	
 	div.appendChild(title);
 	div.appendChild(cryptoChoice);
 	div.appendChild(fiatChoice);
 	div.appendChild(timeChoice);
 	div.appendChild(displayChoice);
+	div.appendChild(timespan);
 }
 
 //params: id,class, options
@@ -371,21 +414,31 @@ function createSelect(id, _class, options){
 	return select;
 }
 
+function checkTimespan(){
+	var timespan = document.getElementById("timespan").value;
+	if(barCountMax != timespan){
+		barCountMax = timespan;
+		getPriceData();
+	}
+}
+
 function getPriceData(){
 	//clear old date
 	scene.remove(graphGroup);
+	scene.remove(coin);
 	graphGroup = new THREE.Group();
 	scene.add(graphGroup);
+	graphGroup.name = 'graph';
 	barCounter = 0;
 	objCounter = 0;
 	
-	var crypt = document.getElementById("cryptoSelect").value;
-	var cur = document.getElementById("fiatSelect").value;
-	var measure = document.getElementById("measureSelect").value;
-	var displayType = document.getElementById("displaySelect").value;
+	var crypt = document.getElementById("cryptoSelect");
+	var cur = document.getElementById("fiatSelect");
+	var measure = document.getElementById("measureSelect");
+	var displayType = document.getElementById("displaySelect");
 	
 	var baseUrl = "https://min-api.cryptocompare.com/data/histo";
-	baseUrl += measure+ "?fsym=" + crypt + "&tsym=" + cur + "&limit=15";
+	baseUrl += measure.value + "?fsym=" + crypt.value + "&tsym=" + cur.value + "&limit=" + barCountMax;
 	
 	restCall(baseUrl).then(
 		function(response) {
@@ -406,13 +459,12 @@ function getPriceData(){
 				}
 				var year = fullDate.getFullYear();
 				var date = '';
-				var measure = document.getElementById("measureSelect").value;
-				switch (measure) {
+				switch (measure.value) {
 					case "minute":
 						date = hours + ":" + minutes;
 						break;
 					case "hour":
-						date = day + " " + hours + ":" + minutes;
+						date = fullDate.getMonth()+1 + "/" +day + " " + hours + ":" + minutes;
 						break
 					case "day":
 						date = month + " " + day;
@@ -428,24 +480,18 @@ function getPriceData(){
 				if(closePrice < lowPoint||lowPoint < 0){
 					lowPoint = closePrice;
 				}
-				/*
-				console.log("Date-in:" + new Date(fullDate));
-				console.log("  Date-out:" + date);
-				console.log("Price:" + info[i].close);
-				console.log("   High:" + highPoint);
-				console.log("   Low:" + lowPoint);
-				*/
 			}
 			
 			var spread = highPoint - lowPoint;  
 			var scaleMod = (planeH - headroom)/highPoint; //leave a little head room
 			
-			createYaxisLegend(displayType,highPoint,lowPoint, 10); //10 markers
-			//createXaxisLegend(displayType);
-
+			createYaxisLegend(displayType.value,highPoint,lowPoint, 10); //10 markers
+			createXaxisLegend(crypt.value,cur.value,measure.value);
+			makeCoin(15,1,-17,-17,0,10,crypt.selectedOptions[0].innerText);
+			
 			for(i=0; i < newData.length;i++){
 				var barHeight = 0;
-				switch(displayType){
+				switch(displayType.value){
 					case "trim":
 						barHeight = newData[i].price * scaleMod * ((newData[i].price - lowPoint)/spread);
 						break;
@@ -453,7 +499,6 @@ function getPriceData(){
 						barHeight = newData[i].price * scaleMod;
 						break;
 				}
-				 
 				addDataAlongXaxis(barHeight, newData[i].price, newData[i].date);
 			}
 		}
@@ -482,6 +527,7 @@ function restCall(url) { return new Promise(function(resolve, reject) {
 		console.log("Could not get contact server" + err);
 })}
 
+/*
 document.onkeydown = function(e) {
     switch (e.keyCode) {
         case 65:
@@ -523,3 +569,4 @@ document.onkeydown = function(e) {
 	
     }
 };
+*/
