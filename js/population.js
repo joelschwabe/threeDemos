@@ -110,6 +110,7 @@ function init() {
 	// scene
 	scene = new THREE.Scene();
 	scene.background = new THREE.Color( 0x000000 );
+	
 	// camera
 	camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 1, 10000 );
 	camera.position.set( 0, 0, -250 );
@@ -140,10 +141,8 @@ function init() {
 
 // animate
 function animate(timestamp,counter) {
-	
 	renderer.render( scene, camera );
 	
-	//if(cycle && allCountryYears.length < (years[years.length-1] - years[0])){
 	if(cycle && allCountryYears.length == 0){ //cycling is on and we haven't started the population call for the years array
 		console.log("cycle is on");
 		for(i=years[0]; i < (years[years.length-1]); i++){
@@ -152,7 +151,6 @@ function animate(timestamp,counter) {
 				var cleanData = processData(data);
 				allCountryYears.push(cleanData);	
 			});
-			
 		}
 	}
 	if(cycle && allCountryYears.length == years.length-1){ //cycling is on and the array is completely populated
@@ -253,7 +251,6 @@ function makeLine(x1,y1,z1,x2,y2,z2, color, name){
 		dashSize: 3,
 		gapSize: 5
 	} );
-
 	var line = new THREE.LineSegments( geometryLine,  materialLine );
 	if(name){
 		line.name = name;
@@ -285,7 +282,6 @@ function cycleYears(country,button){
 	var year = document.getElementById("yearSelect");
 	if(cycle == true){
 		cycle = false;
-		console.log("stopped cycling");
 		button.style.backgroundColor = 'lime';
 		button.innerText = "Cycle All Years";
 		year.disabled = false;
@@ -324,39 +320,25 @@ function processData(data){
 		var thisSlice = {};
 		var femaleAmount = data[i].females;
 		var maleAmount = data[i].males ;
-		var nextFemaleAmount = 0;
-		var nextMaleAmount = 0;
-		if(i < data.length - 1){
-			nextFemaleAmount = data[i +1].females;
-			nextMaleAmount = data[i + 1].males;
-		}else{
-			nextFemaleAmount = femaleAmount;
-			nextMaleAmount = maleAmount;
-		}
+
 		var totalAgeAmount = femaleAmount + maleAmount;
 		var femalePercent = femaleAmount/totalAgeAmount * 100;
 		var malePercent = maleAmount/totalAgeAmount * 100;
 		femaleAmount = femaleAmount/totalPopYear * 5000;
-		nextFemaleAmount = nextFemaleAmount/totalPopYear * 5000;
 		maleAmount = maleAmount/totalPopYear * 5000;
-		nextMaleAmount = nextMaleAmount/totalPopYear * 5000;
-		thisSlice.nextMaleAmount = nextMaleAmount;
 		thisSlice.maleAmount= maleAmount;
 		thisSlice.malePercent = malePercent;
 		thisSlice.femalePercent = femalePercent;
 		cleanedData.push(thisSlice);
-
 	}
 	return cleanedData;
 }
 
 function drawCylinder(data){
-	for(i=0; i < data.length; i++){
-		var maleCyl = makeCylinder( data[i].nextMaleAmount,data[i].maleAmount,  data[i].malePercent, blueColor, cylHeight,cylSegs, rightSideThetaStart); 
-		var femaleCyl = makeCylinder(  data[i].maleAmount ,data[i].nextMaleAmount, data[i].femalePercent, pinkColor, cylHeight,cylSegs, leftSideThetaStart); 
-		
-		maleCyl.name = "m" + pad(i);
-		femaleCyl.name = 'f' + pad(i);
+	for(i=0; i < data.length -1; i++){ //don't do the last one because I'm lazy for index checks
+
+		var maleCyl = makeCylinder( data[i+1].maleAmount,data[i].maleAmount,  data[i].malePercent, blueColor, cylHeight,cylSegs, rightSideThetaStart); 
+		var femaleCyl = makeCylinder(  data[i].maleAmount ,data[i+1].maleAmount, data[i].femalePercent, pinkColor, cylHeight,cylSegs, leftSideThetaStart); 		
 		
 		var cylY = cylHeight/2 * (i * 1);
 		_translate(maleCyl,0, cylY,0);
@@ -375,19 +357,13 @@ function getPopulationData(country, year,callback){
 	//clear old data
 	scene.remove(dataGroup);
 	dataGroup = new THREE.Group();
-	//var country = document.getElementById("countrySelect").value;
-	//var year = document.getElementById("yearSelect").value;
+
 	var baseUrl = "http://api.population.io/1.0/population/";
 	baseUrl += year+ "/" + country;
-	console.log("making an api call...");
 	return $.ajax({
 		url: baseUrl,
 		dataType: "json",
-		method: "GET" /*,
-		success: function(data) {
-			return data;
-		}
-		*/
+		method: "GET" 
 	})
 	.done(callback)
     .fail(function(jqXHR, textStatus, errorThrown) {
