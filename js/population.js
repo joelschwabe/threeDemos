@@ -9,6 +9,7 @@ var pinkColor = 0xe5099c;
 var countries;
 var cycle = null;
 var cycleFrameLimiter = 5;
+var currentYear = 0;
 var allCountryYears = [];
 var years = [	1950,
 				1951,
@@ -138,26 +139,43 @@ function init() {
 }
 
 // animate
-function animate() {
-	requestAnimationFrame( animate );
+function animate(timestamp,counter) {
+	
 	renderer.render( scene, camera );
-	/*
-	if(cycle && allCountryYears < (years[years.length-1] - years[0])){
+	
+	//if(cycle && allCountryYears.length < (years[years.length-1] - years[0])){
+	if(cycle && allCountryYears.length == 0){ //cycling is on and we haven't started the population call for the years array
 		console.log("cycle is on");
-		for(i=years[0]; i < (years[years.length-1] - years[0]); i++){
+		for(i=years[0]; i < (years[years.length-1]); i++){
 			var country = document.getElementById("countrySelect").value;
 			var yearData = getPopulationData(country, i,function(data) {
 				var cleanData = processData(data);
+				allCountryYears.push(cleanData);	
 			});
-			allCountryYears.push(yearData);
-		}
-			
-			
-			
 			
 		}
 	}
-	*/
+	if(cycle && allCountryYears.length == years.length-1){ //cycling is on and the array is completely populated
+		if(counter > cycleFrameLimiter){		//delay between drawing new cones
+			if(currentYear < (years.length-1)){		//current place in array is not the end
+				scene.remove(dataGroup);
+				dataGroup = new THREE.Group();
+				drawCylinder(allCountryYears[currentYear]);
+				currentYear++;
+				var yearCounter = document.getElementById("yearCounter");
+				yearCounter.innerText = years[currentYear].toString();
+			}else{
+				currentYear = 0;			//reset array position
+			}
+			counter = 0;					//reset delay counter
+		}else{
+			counter++;
+		}		
+	}
+	requestAnimationFrame( function(timestamp){
+		starttime = timestamp || new Date().getTime() //if browser doesn't support requestAnimationFrame, generate our own timestamp using Date
+		animate(timestamp, counter) // 400px over 1 second
+	})
 }
 
 function buildMenu(div){
@@ -173,11 +191,16 @@ function buildMenu(div){
 	
 	//button
 	var cycleButton = createButton("cycleButton","button");	
+	var yearCounter = document.createElement("span");
+	yearCounter.id = "yearCounter";
+	yearCounter.style.paddingLeft = '10px';
+	yearCounter.innerText = "----";
 	
 	div.appendChild(title);
 	div.appendChild(countrySelect);
 	div.appendChild(yearSelect);
 	div.appendChild(cycleButton);
+	div.appendChild(yearCounter);
 }
 
 function createSelect(id, _class, options){
@@ -197,8 +220,9 @@ function createSelect(id, _class, options){
 		allCountryYears = [];
 		var country = document.getElementById("countrySelect").value;
 		var year = document.getElementById("yearSelect").value;
+		var yearCounter = document.getElementById("yearCounter");
+		yearCounter.innerText = "----";
 		var data = getPopulationData(country,year, function(data) {
-			//console.log(data); // Do what you want with the data returned
 			var cleanData = processData(data);
 			drawCylinder(cleanData);
 		});
@@ -258,16 +282,19 @@ function _translate(object,x,y,z){
 
 function cycleYears(country,button){
 	console.log("Toggle Cycle");
+	var year = document.getElementById("yearSelect");
 	if(cycle == true){
 		cycle = false;
+		console.log("stopped cycling");
 		button.style.backgroundColor = 'lime';
 		button.innerText = "Cycle All Years";
-		//do the cycle stuff
+		year.disabled = false;
 	}else{
 		cycle = true;
 		button.style.backgroundColor = 'red';
 		button.innerText = "Stop Cycling";
-		//stop doing that stuff
+		currentYear = 0;
+		year.disabled = true;
 	}
 }
 
@@ -279,7 +306,7 @@ function getCountries(){
 		success: function(response) {
 			countries = response.countries;
 			init();
-			animate();
+			animate(0,0);
 		}
 	})
 }
@@ -318,24 +345,8 @@ function processData(data){
 		thisSlice.malePercent = malePercent;
 		thisSlice.femalePercent = femalePercent;
 		cleanedData.push(thisSlice);
-		
-		/*
-		var maleCyl = makeCylinder( nextMaleAmount,maleAmount,  malePercent, blueColor, cylHeight,cylSegs, rightSideThetaStart); 
-		var femaleCyl = makeCylinder(  maleAmount ,nextMaleAmount, femalePercent, pinkColor, cylHeight,cylSegs, leftSideThetaStart); 
-		
-		maleCyl.name = "m" + pad(i);
-		femaleCyl.name = 'f' + pad(i);
-		
-		var cylY = cylHeight/2 * (i * 1);
-		_translate(maleCyl,0, cylY,0);
-		_translate(femaleCyl,0, -cylY,0);
-		
-		dataGroup.add( maleCyl );
-		dataGroup.add( femaleCyl );
-		*/
+
 	}
-	//scene.add(dataGroup);
-	
 	return cleanedData;
 }
 
@@ -368,7 +379,7 @@ function getPopulationData(country, year,callback){
 	//var year = document.getElementById("yearSelect").value;
 	var baseUrl = "http://api.population.io/1.0/population/";
 	baseUrl += year+ "/" + country;
-
+	console.log("making an api call...");
 	return $.ajax({
 		url: baseUrl,
 		dataType: "json",
