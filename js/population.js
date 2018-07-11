@@ -1,3 +1,4 @@
+(function(){
 var renderer, scene, camera, controls, info, dataGroup, sphere;
 var leftSideThetaStart = Math.PI;
 var rightSideThetaStart = 0;
@@ -8,6 +9,7 @@ var blueColor = 0x0a0dce;
 var pinkColor = 0xe5099c;
 var countries;
 var cycle = null;
+var cycleTrip = false;
 var cycleFrameLimiter = 5;
 var currentYear = 0;
 var allCountryYears = [];
@@ -113,12 +115,17 @@ function init() {
 	
 	// camera
 	camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 1, 10000 );
-	camera.position.set( 0, 0, -250 );
+	camera.position.set( 0, 25, -350 );
 	
 	dataGroup = new THREE.Group();
+	dataGroup.name = "dataGroup";
 	
 	controls = new THREE.OrbitControls( camera, renderer.domElement ); 
 	controls.update();
+	
+	var light = new THREE.PointLight( 0xffffff, 1, 0 );
+	light.position.set( 15, 150, -300 );
+    scene.add(light);
 	
 	//clear centerpoint for camera pivot
 	var geometry = new THREE.SphereGeometry( 0.01, 4, 4 );
@@ -143,8 +150,9 @@ function init() {
 function animate(timestamp,counter) {
 	renderer.render( scene, camera );
 	
-	if(cycle && allCountryYears.length == 0){ //cycling is on and we haven't started the population call for the years array
+	if(cycle && allCountryYears.length == 0 && cycleTrip == false){ //cycling is on and we haven't started the population call for the years array
 		console.log("cycle is on");
+		cycleTrip = true;
 		for(i=years[0]; i < (years[years.length-1]); i++){
 			var country = document.getElementById("countrySelect").value;
 			var yearData = getPopulationData(country, i,function(data) {
@@ -156,9 +164,10 @@ function animate(timestamp,counter) {
 	if(cycle && allCountryYears.length == years.length-1){ //cycling is on and the array is completely populated
 		if(counter > cycleFrameLimiter){		//delay between drawing new cones
 			if(currentYear < (years.length-1)){		//current place in array is not the end
-				scene.remove(dataGroup);
-				dataGroup = new THREE.Group();
+				cleanUp();
+
 				drawCylinder(allCountryYears[currentYear]);
+				//modCylinder(allCountryYears[currentYear]);
 				currentYear++;
 				var yearCounter = document.getElementById("yearCounter");
 				yearCounter.innerText = years[currentYear].toString();
@@ -174,6 +183,20 @@ function animate(timestamp,counter) {
 		starttime = timestamp || new Date().getTime() //if browser doesn't support requestAnimationFrame, generate our own timestamp using Date
 		animate(timestamp, counter) // 400px over 1 second
 	})
+}
+
+function cleanUp(){
+	// clean up	
+	var group = scene.children.indexOf(dataGroup);
+	if(scene.children[group]){ //group exists
+		for( var i = scene.children[group].children.length - 1; i >= 0; i--) { 				
+			scene.children[group].children[i].geometry.dispose();
+			scene.children[group].children[i].material.dispose();
+			scene.remove( scene.children[group].children[i] );
+
+		}
+		scene.remove(scene.children[group]); 
+	}
 }
 
 function buildMenu(div){
@@ -216,11 +239,15 @@ function createSelect(id, _class, options){
 	}
 	select.addEventListener('change', function() {
 		allCountryYears = [];
+		cleanUp();
 		var country = document.getElementById("countrySelect").value;
 		var year = document.getElementById("yearSelect").value;
 		var yearCounter = document.getElementById("yearCounter");
+		var cycleButton = document.getElementById("cycleButton");
+		cycleButton.disabled = false;
 		yearCounter.innerText = "----";
 		var data = getPopulationData(country,year, function(data) {
+			cleanUp();
 			var cleanData = processData(data);
 			drawCylinder(cleanData);
 		});
@@ -234,6 +261,7 @@ function createButton(id, _class){
 	button.id = id;
 	button.className = _class;
 	button.innerText = "Cycle All Years";
+	button.disabled = true;
 	button.addEventListener('click', function() {
 		var country = document.getElementById("countrySelect").value;
 		var button = document.getElementById("cycleButton");
@@ -262,8 +290,15 @@ function makeLine(x1,y1,z1,x2,y2,z2, color, name){
 
 function makeCylinder(radiusTop, radiusBottom, percentOf, color, height, radSegs, thetaStart){
 	var thetaLength = Math.PI * percentOf / 50; 
-	var geometry = new THREE.CylinderGeometry( radiusTop, radiusBottom, height, radSegs, 1, false, thetaStart, thetaLength); //top == bottom (cyl not cone)
-	var material = new THREE.MeshBasicMaterial( {color: color} );
+	var geometry = new THREE.CylinderGeometry( radiusTop, radiusBottom, height, radSegs, 1, false, thetaStart, thetaLength); //top == bottom (cyl not cone) //try true?
+	//var material = new THREE.MeshBasicMaterial( {color: color} );
+	//var material = new THREE.MeshPhongMaterial( { color: color, flatShading: true } );
+	var material = new THREE.MeshLambertMaterial( {
+													color:color,
+													emissive: new THREE.Color( 'black'),
+													flatShading: false
+													}
+	);													
 	var cylinder = new THREE.Mesh( geometry, material );
 	if(thetaStart > 0){
 		cylinder.rotateX(thetaStart);
@@ -285,6 +320,7 @@ function cycleYears(country,button){
 		button.style.backgroundColor = 'lime';
 		button.innerText = "Cycle All Years";
 		year.disabled = false;
+		cycleTrip = false;
 	}else{
 		cycle = true;
 		button.style.backgroundColor = 'red';
@@ -335,6 +371,9 @@ function processData(data){
 }
 
 function drawCylinder(data){
+	dataGroup = new THREE.Group();
+	dataGroup.name= "dataGroup";
+	
 	for(i=0; i < data.length -1; i++){ //don't do the last one because I'm lazy for index checks
 
 		var maleCyl = makeCylinder( data[i+1].maleAmount,data[i].maleAmount,  data[i].malePercent, blueColor, cylHeight,cylSegs, rightSideThetaStart); 
@@ -351,12 +390,33 @@ function drawCylinder(data){
 	scene.add(dataGroup);
 }
 
+function modCylinder(data){
+	/*
+	var totalPopYear = 0;
+	for(i=0; i < data.length; i++){
+		var femaleAmount = data[i].females;
+		var maleAmount = data[i].males;
+		var totalAgeAmount = femaleAmount + maleAmount;
+		totalPopYear += totalAgeAmount;
+	}
+	*/
+	for(i=0; i < (data.length-1 * 2) ; i +=2){ //don't do the last two because I'm lazy for index checks
+		var scale = dataGroup.children[i].geometry.parameters.radiusBottom / data[i].maleAmount;
+		var thetaLengthM = Math.PI * data[i].malePercent / 50; 
+		var thetaLengthF = (Math.PI * 2) - thetaLengthM;
+		//change the theta.....how?
+		dataGroup.children[i].scale.x = scale;
+		dataGroup.children[i].scale.z = scale;
+		dataGroup.children[i+1].scale.x = scale;
+		dataGroup.children[i+1].scale.z = scale;
+			
+	}
+	
+}
+
 function pad(n) { return ("000" + n).slice(-3); }
 
 function getPopulationData(country, year,callback){
-	//clear old data
-	scene.remove(dataGroup);
-	dataGroup = new THREE.Group();
 
 	var baseUrl = "http://api.population.io/1.0/population/";
 	baseUrl += year+ "/" + country;
@@ -370,3 +430,5 @@ function getPopulationData(country, year,callback){
         // Handle error
     });
 }
+
+}());
