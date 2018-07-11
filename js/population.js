@@ -144,6 +144,14 @@ function init() {
 	makeLine(0,-1000,0,0,1000,0,0xffe800);	
 	makeLine(0,0,-1000,0,0,1000,0x000fff);	
 	*/
+	
+	window.addEventListener( 'resize', onWindowResize, false );
+}
+
+function onWindowResize() {
+	camera.aspect = window.innerWidth / window.innerHeight;
+	camera.updateProjectionMatrix();
+	renderer.setSize( window.innerWidth, window.innerHeight );
 }
 
 // animate
