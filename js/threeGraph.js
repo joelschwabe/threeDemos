@@ -1,6 +1,4 @@
-var renderer, scene, camera, controls, info, graphGroup, coin, light;
-
-var objCounter = 0;
+var renderer, scene, camera, controls, info, graphGroup, barGroup, coin, light;
 
 var barCounter = 0;
 var barSpacer = 20, barX = 10, barZ = 10, barCountMax=15;
@@ -101,6 +99,10 @@ function init(){
 	graphGroup = new THREE.Group();
 	graphGroup.name = 'graph';
 	scene.add(graphGroup);
+	barGroup = new THREE.Group();
+	barGroup.name = 'barGroup';
+	graphGroup.add(barGroup);
+	
 	/*
 	//group pivotPoint
 	var material2 = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
@@ -212,10 +214,9 @@ function makeLine(x1,y1,z1,x2,y2,z2, color, name){
 	if(name){
 		line.name = name;
 	}else{
-		line.name = "line" + objCounter;
+		line.name = "line";
 	}
 	scene.add( line );
-	objCounter++;
 }
 //
 function makeCoin(rad,thick,xt,yt,zt,size,coinType){
@@ -284,17 +285,14 @@ function addBar(x,y,z,w,l,h,name,color){
 		if(!nameExists){
 			bar.name = name;
 		}else{
-			bar.name = name + "-" + objCounter;
+			bar.name = name + "-" + x;
 		}
 	}else{
-		bar.name = "bar-" + objCounter;
+		bar.name = "bar";
 	}
 	*/
-	
 	bar.name = "bar";
-	
-	graphGroup.add( bar );
-	objCounter++;
+	barGroup.add( bar );
 }
 
 function renderedText(text,x,y,z,colorFill,size){
@@ -328,7 +326,7 @@ function addDataAlongXaxis(barY, price, date){
 	thisX = barOriginX + (barCounter * barSpacer);
 	thisY = barOriginY + (barY/2);
 	thisZ = barOriginZ;
-	addBar(	thisX,thisY,thisZ,barX,barY,barZ + 1, 'bar'+thisX ,0xFFD700);
+	addBar(	thisX,thisY,thisZ,barX,barY,barZ + 1, 'bar'+thisX ,0xFFD700); //gold color
 	renderedText(date,(thisX-barX/2),1,11,0x000000,2.5); //date
 	renderedText(price,(thisX-barX/2),(barY + 5),1,0x000000,3); //value 
 	barCounter++;
@@ -412,6 +410,12 @@ function buildMenu(div){
 	timespan.id= "timespan",
 	timespan.placeholder = "Unit of time (default: 15)";
 	timespan.addEventListener('focusout', checkTimespan);
+	timespan.addEventListener('keypress', function (e) {
+		var key = e.which || e.keyCode;
+		if (key === 13) { // 13 is enter
+		  checkTimespan();
+		}
+	});
 	
 	div.appendChild(title);
 	div.appendChild(cryptoChoice);
@@ -455,10 +459,13 @@ function getPriceData(){
 	scene.remove(graphGroup);
 	scene.remove(coin);
 	graphGroup = new THREE.Group();
-	scene.add(graphGroup);
 	graphGroup.name = 'graph';
+	barGroup = new THREE.Group();
+	barGroup.name = 'barGroup';
+	graphGroup.add(barGroup);
+	scene.add(graphGroup);
+
 	barCounter = 0;
-	objCounter = 0;
 	
 	var crypt = document.getElementById("cryptoSelect");
 	var cur = document.getElementById("fiatSelect");
@@ -557,17 +564,16 @@ function restCall(url) { return new Promise(function(resolve, reject) {
 })}
 
 function onDocumentMouseDown( event ) {    
-	event.preventDefault();
 	var mouse3D = new THREE.Vector3( ( event.clientX / window.innerWidth ) * 2 - 1,   
 							-( event.clientY / window.innerHeight ) * 2 + 1,  
 							0.5 );     
 	var raycaster =  new THREE.Raycaster();                                        
 	raycaster.setFromCamera( mouse3D, camera );
-	var g = scene.getObjectByName("graph");
-	var intersects = raycaster.intersectObjects( g.children );
+	var bg = scene.getObjectByName("barGroup");
+	var intersects = raycaster.intersectObjects( bg.children );
 	if ( intersects.length > 0 ) {
-		if(intersects[0].object.material.color.getHex() == 0xff3300){
-			intersects[ 0 ].object.material.color.setHex( 0xFFD700 );
+		if(intersects[0].object.material.color.getHex() == 0xff3300){ //red
+			intersects[ 0 ].object.material.color.setHex( 0xFFD700 ); //gold
 		}else{
 			intersects[ 0 ].object.material.color.setHex( 0xff3300 );
 		}
