@@ -127,6 +127,7 @@ function init(){
 
 	makeBackdrop();
 	
+	window.addEventListener( 'mousedown', onDocumentMouseDown );
 	window.addEventListener( 'resize', onWindowResize, false );
 }
 
@@ -277,7 +278,7 @@ function addBar(x,y,z,w,l,h,name,color){
 	material = new THREE.MeshPhongMaterial({color: color});
 	bar = new THREE.Mesh( geometry, material );
 	_translate(bar,x,y,z);
-
+	/*
 	if(name){
 		var nameExists = scene.getObjectByName(name);
 		if(!nameExists){
@@ -288,6 +289,10 @@ function addBar(x,y,z,w,l,h,name,color){
 	}else{
 		bar.name = "bar-" + objCounter;
 	}
+	*/
+	
+	bar.name = "bar";
+	
 	graphGroup.add( bar );
 	objCounter++;
 }
@@ -550,3 +555,21 @@ function restCall(url) { return new Promise(function(resolve, reject) {
 }).catch(function(err){
 		console.log("Could not get contact server" + err);
 })}
+
+function onDocumentMouseDown( event ) {    
+	event.preventDefault();
+	var mouse3D = new THREE.Vector3( ( event.clientX / window.innerWidth ) * 2 - 1,   
+							-( event.clientY / window.innerHeight ) * 2 + 1,  
+							0.5 );     
+	var raycaster =  new THREE.Raycaster();                                        
+	raycaster.setFromCamera( mouse3D, camera );
+	var g = scene.getObjectByName("graph");
+	var intersects = raycaster.intersectObjects( g.children );
+	if ( intersects.length > 0 ) {
+		if(intersects[0].object.material.color.getHex() == 0xff3300){
+			intersects[ 0 ].object.material.color.setHex( 0xFFD700 );
+		}else{
+			intersects[ 0 ].object.material.color.setHex( 0xff3300 );
+		}
+	}
+}
