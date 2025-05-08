@@ -1,0 +1,71 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="UTF-8"></meta>
+        <title>Testing pointer</title>
+        <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
+        <link rel="icon" href="/favicon.ico" type="image/x-icon">
+        <link rel="stylesheet" href="/css/main.css" type="text/css">
+            <!-- development version, includes helpful console warnings -->
+
+    </head>
+    <body>
+        <div id="viewToggles">
+            <button id="viewMonitor" onclick="viewMonitor()">View Monitor</button>
+            <button id="viewController" onclick="viewController()">View Controller</button>
+            <p id="num-observed-events">0</p>
+            <p id="cursorInfo"></p>
+            <p id="clickRegister"></p>
+        </div>
+        <div id="monitor">
+            <button id="setCanvasButton" onclick="registerCanvas()">Set Canvas</button>
+            <p id="canvasInfo"></p>
+            <canvas id="canvas" class="pointer"></canvas>
+
+        </div>
+        <div id="controller" display="none">
+            <p>CONTROLLER</p>
+            <div id="demo-div">
+
+                <h4 style="margin-top:0.75rem;">Orientation</h4>
+                <ul>
+                  <li>X-axis (&beta;): <span id="Orientation_b">0</span><span>&deg;</span></li>
+                  <li>Y-axis (&gamma;): <span id="Orientation_g">0</span><span>&deg;</span></li>
+                  <li>Z-axis (&alpha;): <span id="Orientation_a">0</span><span>&deg;</span></li>
+                </ul>
+                <button id="resetZero" onclick="resetZeroFlip()">Reset Zero Space</button>
+                <input id="sensitivity" onchange="changeSensitivity()"type="range" min="1" max="40" value="20" class="slider" >
+                <!--   ONLY WORKS WITH HTTPS -->
+
+                <h4>Accelerometer</h4>
+                <ul>
+                  <li>X-axis: <span id="Accelerometer_x">0</span><span> m/s<sup>2</sup></span></li>
+                  <li>Y-axis: <span id="Accelerometer_y">0</span><span> m/s<sup>2</sup></span></li>
+                  <li>Z-axis: <span id="Accelerometer_z">0</span><span> m/s<sup>2</sup></span></li>
+                  <li>Data Interval: <span id="Accelerometer_i">0</span><span> ms</span></li>
+                </ul>
+                
+                <h4>Accelerometer including gravity</h4>
+                
+                <ul>
+                  <li>X-axis: <span id="Accelerometer_gx">0</span><span> m/s<sup>2</sup></span></li>
+                  <li>Y-axis: <span id="Accelerometer_gy">0</span><span> m/s<sup>2</sup></span></li>
+                  <li>Z-axis: <span id="Accelerometer_gz">0</span><span> m/s<sup>2</sup></span></li>
+                </ul>
+                
+                <h4>Gyroscope</h4>
+                <ul>
+                  <li>X-axis: <span id="Gyroscope_x">0</span><span>&deg;/s</span></li>
+                  <li>Y-axis: <span id="Gyroscope_y">0</span><span>&deg;/s</span></li>
+                  <li>Z-axis: <span id="Gyroscope_z">0</span><span>&deg;/s</span></li>
+                </ul>
+
+                <button id="clicker" onclick="clickPointer()">CLICK</button>
+                </div>
+        </div>
+
+    </body>
+    <script src="/socket.io/socket.io.js"></script>
+	<script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+    <script src="/js/pointer.js" type="application/javascript"></script>
+</html>

@@ -1,0 +1,24 @@
+body {
+	font: 13px Helvetica, Arial;
+	background-color:rgb(146, 193, 231);
+}
+
+#canvas{
+	position: fixed;
+  	top: 0;
+  	left: 0;
+	z-index: -1;
+}
+
+#clicker{
+	width:400px;
+	height: 400px;
+	color:blue;
+	background-color: orange;
+}
+
+#clickRegister{
+	font-size: large;
+	color: red;
+	display: none;
+}
