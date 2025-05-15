@@ -11,18 +11,23 @@
     </head>
     <body>
         <div id="viewToggles">
-            <button id="viewMonitor" onclick="viewMonitor()">View Monitor</button>
+            <button id="viewPointer" onclick="viewPointer()">View Pointer Monitor</button>
+            <button id="viewGame" onclick="viewGame()">View Game Monitor</button>
             <button id="viewController" onclick="viewController()">View Controller</button>
             <p id="num-observed-events">0</p>
+            <p id="num-observed-events-motion">0</p>
             <p id="cursorInfo"></p>
             <p id="clickRegister"></p>
         </div>
-        <div id="monitor">
+        <div id="pointerMonitor">
             <button id="setCanvasButton" onclick="registerCanvas()">Set Canvas</button>
             <p id="canvasInfo"></p>
             <canvas id="canvas" class="pointer"></canvas>
 
         </div>
+        <div id="gameMonitor" display="none">
+        </div>
+      </div>
         <div id="controller" display="none">
             <p>CONTROLLER</p>
             <div id="demo-div">
@@ -33,8 +38,6 @@
                   <li>Y-axis (&gamma;): <span id="Orientation_g">0</span><span>&deg;</span></li>
                   <li>Z-axis (&alpha;): <span id="Orientation_a">0</span><span>&deg;</span></li>
                 </ul>
-                <button id="resetZero" onclick="resetZeroFlip()">Reset Zero Space</button>
-                <input id="sensitivity" onchange="changeSensitivity()"type="range" min="1" max="40" value="20" class="slider" >
                 <!--   ONLY WORKS WITH HTTPS -->
 
                 <h4>Accelerometer</h4>
@@ -60,6 +63,11 @@
                   <li>Z-axis: <span id="Gyroscope_z">0</span><span>&deg;/s</span></li>
                 </ul>
 
+                <button id="resetZero" onclick="resetZeroFlip()" class="pointerSettings">Reset Zero Space</button>
+                <p class="pointerSettings">Pointer Sensitivity</p><input class="pointerSettings" id="pointerSensitivity" onchange="changePointerSensitivity()"type="range" min="1" max="100" value="40" class="slider"/>
+                <br/>
+                <p class="pointerSettings">Movement Sensitivity</p><input class="pointerSettings" id="movementSensitivity" onchange="changeMovementSensitivity()"type="range" min="1" max="10" value="4" class="slider"/>
+
                 <button id="clicker" onclick="clickPointer()">CLICK</button>
                 </div>
         </div>
@@ -67,5 +75,8 @@
     </body>
     <script src="/socket.io/socket.io.js"></script>
 	<script src="https://code.jquery.com/jquery-1.11.1.js"></script>
-    <script src="/js/pointer.js" type="application/javascript"></script>
+  <script type="text/javascript" src="/js/three.js"></script>
+	<script type="text/javascript" src="/js/THREE.MeshLine.js"></script>
+  <script type="text/javascript" src="/js/OrbitControls.js"></script>
+  <script type="text/javascript" src="/js/pointer.js" ></script>
 </html>
